@@ -1,64 +1,72 @@
 #include <iostream>
 #include <string>
+#include <vector>
+#include <unordered_map>
+#include <map>
 #include <algorithm>
 #include <iterator>
-#include <regex>
-#include <map>
-#include <vector>
-#include <set>
+#include <array>
 #include <random>
+#include <numeric>
+
+static auto const ORDER = 2;
+static auto const LENGTH = 2500;
+
 
 int main () {
-    auto const ORDER = 2;
-
-    std::string data;
-
-    std::copy (std::istreambuf_iterator<char> (std::cin), 
+    auto model = std::map<std::string, std::map<std::string, std::size_t>> ();
+    auto text = std::string ();
+    std::copy (std::istreambuf_iterator<char> (std::cin),
         std::istreambuf_iterator<char> (), 
-        std::back_inserter (data));
-
-    static const auto tok_rex = std::regex (R"([\-\'a-zA-Z]+|\?|\!|\.{1,3}|\,|[\r\n]+|\(|\))", std::regex::optimize);
-    std::sregex_token_iterator ti (data.begin (), data.end (), tok_rex);
-    std::sregex_token_iterator te;
-    
-
-    auto cntx = std::vector<std::string> {};
-    for (auto i = 0; i < ORDER; ++i) {
-        cntx.emplace_back ("");
+        std::back_inserter (text));
+    for (auto i = 0u; i < text.size (); ++i) {
+        auto key = text.substr (i, ORDER);
+        model.emplace (key, std::map<std::string, std::size_t> ());
     }
-    auto dict = std::map<
-        std::vector<std::string>, 
-        std::vector<std::string>> 
-        ();
-    auto allw = std::set<std::string> ();
-
-    std::for_each (ti, te, [&cntx, &dict, &allw] (const auto& tok) {
-        allw.emplace (tok);
-        dict [cntx].emplace_back (tok);
-        cntx.erase (cntx.begin (), cntx.begin () + 1u);
-        cntx.emplace_back (tok);
-    });
-
-    std::random_device my_rand;
-
+    for (auto i = 0u; i < text.size () - ORDER; ++i) {
+        auto key0 = text.substr (i, ORDER);
+        auto key1 = text.substr (i+ORDER, ORDER);
+        ++model [key0] [key1];
+    }
     
-    
-    cntx = std::vector<std::string> (allw.begin (), allw.end ());
-    std::random_shuffle (std::begin (cntx), std::end (cntx));
-    cntx.erase (std::begin (cntx) + ORDER, std::end (cntx));
+    auto temp = std::vector<std::string> ();
+    for (const auto& i: model) {
+        temp.emplace_back (i.first);
+    }
+    std::random_shuffle (std::begin (temp), std::end (temp));
 
-    auto text = cntx;
-    
-    for (auto i = 0; i < 50; ++i) {
-        auto tmp = dict [cntx];
-        std::random_shuffle (std::begin (tmp), std::end (tmp));
-        text.push_back (tmp [0]);
-        cntx.erase (cntx.begin (), cntx.begin () + 1u);
-        cntx.emplace_back (tmp [0]);
+    auto old_word = temp [0];
+    text = temp [0];
+
+    std::random_device rd;
+    std::mt19937 gen (rd ());
+
+    static const auto pick_word = [&] (const auto& table) {
+        if (table.empty ())
+            throw std::runtime_error ("empty table");
+        auto dist = std::vector<std::uint32_t> ();
+        auto list = std::vector<std::string> ();
+        for (const auto& i : table) {
+            dist.push_back (unsigned (i.second));
+            list.push_back (i.first);
+        }
+        auto dstr = std::discrete_distribution<std::uint32_t> (dist.begin (), dist.end ());        
+        return list [dstr (gen)];
+    };
+
+    for (auto i = 0u; i < (LENGTH/ORDER); ++i) try {
+        auto new_word = pick_word (model.at (old_word));
+        old_word = new_word;
+        text.append (new_word);
+    }
+    catch (const std::exception&) {
+        auto temp = std::vector<std::string> ();
+        for (const auto& i: model) 
+            temp.emplace_back (i.first);        
+        std::random_shuffle (std::begin (temp), std::end (temp));
+        old_word = temp [0];
     }
 
-    for (const auto& word: text) {
-        std::cout << word;
-    }
-
+    std::cout << text;
+    return 0;
 }
