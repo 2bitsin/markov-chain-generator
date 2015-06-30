@@ -9,7 +9,7 @@
 #include <random>
 #include <numeric>
 
-static auto const ORDER = 2;
+static auto const ORDER = 5;
 static auto const LENGTH = 2500;
 
 
@@ -19,10 +19,7 @@ int main () {
     std::copy (std::istreambuf_iterator<char> (std::cin),
         std::istreambuf_iterator<char> (), 
         std::back_inserter (text));
-    for (auto i = 0u; i < text.size (); ++i) {
-        auto key = text.substr (i, ORDER);
-        model.emplace (key, std::map<std::string, std::size_t> ());
-    }
+
     for (auto i = 0u; i < text.size () - ORDER; ++i) {
         auto key0 = text.substr (i, ORDER);
         auto key1 = text.substr (i+ORDER, ORDER);
