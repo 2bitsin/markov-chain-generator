@@ -7,6 +7,7 @@
 #include <iterator>
 #include <array>
 #include <random>
+#include <cctype>
 #include <numeric>
 
 static auto const ORDER = 5;
@@ -16,9 +17,11 @@ static auto const LENGTH = 2500;
 int main () {
     auto model = std::map<std::string, std::map<std::string, std::size_t>> ();
     auto text = std::string ();
-    std::copy (std::istreambuf_iterator<char> (std::cin),
+    std::transform (std::istreambuf_iterator<char> (std::cin),
         std::istreambuf_iterator<char> (), 
-        std::back_inserter (text));
+        std::back_inserter (text),
+        [] (auto&& c) { return std::toupper (c); });
+    
 
     for (auto i = 0u; i < text.size () - ORDER; ++i) {
         auto key0 = text.substr (i, ORDER);
